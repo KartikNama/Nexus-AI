@@ -1,0 +1,144 @@
+"use client";
+
+import { Suspense, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Loader2 } from "lucide-react";
+import { isDemoMode } from "@/lib/demo-data";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/layout/auth-shell";
+import { AuthForm } from "@/components/auth/auth-form";
+import { toast } from "sonner";
+
+const signupSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+type SignupForm = z.infer<typeof signupSchema>;
+
+function SignupFormContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const invite = searchParams.get("invite");
+  const [loading, setLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupForm>({
+    resolver: zodResolver(signupSchema),
+  });
+
+  const onSubmit = async (data: SignupForm) => {
+    setLoading(true);
+    try {
+      if (isDemoMode()) {
+        toast.success("Account created! (Demo mode)");
+        router.push("/dashboard");
+        return;
+      }
+
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          ...(invite ? { invite } : {}),
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Signup failed");
+
+      toast.success(result.message || "Check your email to verify your account", {
+        duration: result.emailSkipped ? 8000 : 4000,
+      });
+      router.push("/login");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AuthShell step={1} totalSteps={1} stepLabel="Welcome">
+      <CardHeader className="space-y-1 p-0 text-center">
+        <CardTitle className="font-display text-2xl text-foreground">Create your account</CardTitle>
+        <CardDescription>Start building your relationship intelligence</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0 pt-6">
+          <AuthForm onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" required>
+                Full name
+              </Label>
+              <Input id="name" placeholder="Alex Morgan" {...register("name")} />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" required>
+                Email
+              </Label>
+              <Input id="email" type="email" placeholder="you@company.com" {...register("email")} />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" required>
+                Password
+              </Label>
+              <Input id="password" type="password" {...register("password")} />
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" required>
+                Confirm password
+              </Label>
+              <Input id="confirmPassword" type="password" {...register("confirmPassword")} />
+              {errors.confirmPassword && (
+                <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create account
+            </Button>
+          </AuthForm>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardContent>
+    </AuthShell>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupFormContent />
+    </Suspense>
+  );
+}

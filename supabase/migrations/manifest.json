@@ -1,0 +1,260 @@
+[
+  {
+    "version": "20260626145530",
+    "name": "initial_schema_tables",
+    "file": "20260626145530_initial_schema_tables.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260626145545",
+    "name": "initial_schema_indexes_and_functions",
+    "file": "20260626145545_initial_schema_indexes_and_functions.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260626145601",
+    "name": "rls_policies",
+    "file": "20260626145601_rls_policies.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260626145704",
+    "name": "harden_function_grants",
+    "file": "20260626145704_harden_function_grants.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260626150000",
+    "name": "vector_index",
+    "file": "20260626150000_vector_index.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260626180000",
+    "name": "fix_profiles_rls_recursion",
+    "file": "20260626180000_fix_profiles_rls_recursion.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260626200000",
+    "name": "onboarding_and_defaults",
+    "file": "20260626200000_onboarding_and_defaults.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260626210000",
+    "name": "fix_rls_function_grants",
+    "file": "20260626210000_fix_rls_function_grants.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260627120000",
+    "name": "data_connectors",
+    "file": "20260627120000_data_connectors.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260627140000",
+    "name": "multi_account_connectors",
+    "file": "20260627140000_multi_account_connectors.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260627160000",
+    "name": "ensure_user_onboarded",
+    "file": "20260627160000_ensure_user_onboarded.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260627180000",
+    "name": "workspace_invite_token",
+    "file": "20260627180000_workspace_invite_token.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260627200000",
+    "name": "match_contacts_in_workspaces",
+    "file": "20260627200000_match_contacts_in_workspaces.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260627210000",
+    "name": "billing_and_feature_flags",
+    "file": "20260627210000_billing_and_feature_flags.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260628100000",
+    "name": "playbooks_and_segments",
+    "file": "20260628100000_playbooks_and_segments.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260628120000",
+    "name": "playbook_sequences_polish",
+    "file": "20260628120000_playbook_sequences_polish.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260629120000",
+    "name": "workspace_email_settings",
+    "file": "20260629120000_workspace_email_settings.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260629140000",
+    "name": "email_personal_and_domain_verification",
+    "file": "20260629140000_email_personal_and_domain_verification.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260629160000",
+    "name": "workspace_leave_and_delete",
+    "file": "20260629160000_workspace_leave_and_delete.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260707140000",
+    "name": "platform_chat_delivery",
+    "file": "20260707140000_platform_chat_delivery.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260707180000",
+    "name": "playbook_sequences_cron",
+    "file": "20260707180000_playbook_sequences_cron.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260707190000",
+    "name": "thread_messages_realtime",
+    "file": "20260707190000_thread_messages_realtime.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260708120000",
+    "name": "sequence_allowed_weekdays",
+    "file": "20260708120000_sequence_allowed_weekdays.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260708140000",
+    "name": "conversation_threads_per_contact",
+    "file": "20260708140000_conversation_threads_per_contact.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260709120000",
+    "name": "performance_package",
+    "file": "20260709120000_performance_package.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260710120000",
+    "name": "workspace_member_counts",
+    "file": "20260710120000_workspace_member_counts.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260710140000",
+    "name": "phase3_optimizations",
+    "file": "20260710140000_phase3_optimizations.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260710180000",
+    "name": "chat_delete",
+    "file": "20260710180000_chat_delete.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260714120000",
+    "name": "connector_auto_sync",
+    "file": "20260714120000_connector_auto_sync.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260716120000",
+    "name": "profile_group_images_and_details",
+    "file": "20260716120000_profile_group_images_and_details.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260717120000",
+    "name": "workflows",
+    "file": "20260717120000_workflows.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260717140000",
+    "name": "workflow_last_run",
+    "file": "20260717140000_workflow_last_run.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260717180000",
+    "name": "sync_source_outlook_mail",
+    "file": "20260717180000_sync_source_outlook_mail.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260720100000",
+    "name": "support_tickets_and_user_feature_flags",
+    "file": "20260720100000_support_tickets_and_user_feature_flags.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260720120000",
+    "name": "support_ticket_attachments",
+    "file": "20260720120000_support_ticket_attachments.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260720140000",
+    "name": "support_ticket_reads",
+    "file": "20260720140000_support_ticket_reads.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260721120000",
+    "name": "platform_email_templates",
+    "file": "20260721120000_platform_email_templates.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260724150000",
+    "name": "intro_request_email_template",
+    "file": "20260724150000_intro_request_email_template.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260724200000",
+    "name": "intro_recipient_visibility",
+    "file": "20260724200000_intro_recipient_visibility.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260727200000",
+    "name": "thread_message_attachments",
+    "file": "20260727200000_thread_message_attachments.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260727210000",
+    "name": "sync_source_apollo",
+    "file": "20260727210000_sync_source_apollo.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260727220000",
+    "name": "apollo_records",
+    "file": "20260727220000_apollo_records.sql",
+    "remote": "applied"
+  },
+  {
+    "version": "20260728120000",
+    "name": "platform_prospects",
+    "file": "20260728120000_platform_prospects.sql",
+    "remote": "applied"
+  }
+]
