@@ -2,11 +2,7 @@ import { notFound } from "next/navigation";
 import { DocsArticle } from "@/components/docs/docs-article";
 import { DOC_PAGES, getDocPage } from "@/lib/docs/catalog";
 
-export function generateStaticParams() {
-  return DOC_PAGES.filter((page) => page.slug !== "overview").map((page) => ({
-    slug: page.slug,
-  }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function DocsSlugPage({
   params,
