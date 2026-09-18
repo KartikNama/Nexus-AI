@@ -1,4 +1,4 @@
-# Potentially.ai
+# NexusAI
 
 AI-powered relationship intelligence and warm-introduction platform. Search your network in natural language, discover warm intro paths, visualize relationships, and generate personalized outreach.
 
@@ -90,7 +90,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 OPENAI_API_KEY=sk-your-openai-key
 NEXT_PUBLIC_APP_URL=http://localhost:1020
 RESEND_API_KEY=re_...
-EMAIL_FROM=Potentially <onboarding@yourdomain.com>
+EMAIL_FROM=NexusAI <onboarding@yourdomain.com>
 
 # Optional Stripe billing
 STRIPE_SECRET_KEY=sk_...
