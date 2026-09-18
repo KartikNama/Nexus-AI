@@ -26,15 +26,36 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "vector";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
-CREATE TYPE workspace_role AS ENUM ('owner', 'admin', 'member', 'viewer');
-CREATE TYPE oauth_provider AS ENUM ('google', 'microsoft', 'outlook');
-CREATE TYPE connection_status AS ENUM ('active', 'expired', 'revoked', 'pending');
-CREATE TYPE relationship_event_type AS ENUM ('email', 'meeting', 'introduction', 'mutual_connection', 'linkedin');
-CREATE TYPE introduction_status AS ENUM ('draft', 'requested', 'accepted', 'declined', 'completed');
-CREATE TYPE sync_job_status AS ENUM ('pending', 'running', 'completed', 'failed');
-CREATE TYPE sync_source AS ENUM ('google_contacts', 'google_calendar', 'gmail', 'outlook', 'csv');
+DO $$ BEGIN
+    CREATE TYPE workspace_role AS ENUM ('owner', 'admin', 'member', 'viewer');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE oauth_provider AS ENUM ('google', 'microsoft', 'outlook');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE connection_status AS ENUM ('active', 'expired', 'revoked', 'pending');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE relationship_event_type AS ENUM ('email', 'meeting', 'introduction', 'mutual_connection', 'linkedin');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE introduction_status AS ENUM ('draft', 'requested', 'accepted', 'declined', 'completed');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE sync_job_status AS ENUM ('pending', 'running', 'completed', 'failed');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE sync_source AS ENUM ('google_contacts', 'google_calendar', 'gmail', 'outlook', 'csv');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   name TEXT,
@@ -47,7 +68,7 @@ CREATE TABLE profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE workspaces (
+CREATE TABLE IF NOT EXISTS workspaces (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
@@ -57,7 +78,7 @@ CREATE TABLE workspaces (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE workspace_members (
+CREATE TABLE IF NOT EXISTS workspace_members (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -67,7 +88,7 @@ CREATE TABLE workspace_members (
   UNIQUE(workspace_id, user_id)
 );
 
-CREATE TABLE workspace_invites (
+CREATE TABLE IF NOT EXISTS workspace_invites (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
@@ -79,7 +100,7 @@ CREATE TABLE workspace_invites (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE oauth_connections (
+CREATE TABLE IF NOT EXISTS oauth_connections (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -97,7 +118,7 @@ CREATE TABLE oauth_connections (
   UNIQUE(user_id, workspace_id, provider)
 );
 
-CREATE TABLE companies (
+CREATE TABLE IF NOT EXISTS companies (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -112,7 +133,7 @@ CREATE TABLE companies (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE contacts (
+CREATE TABLE IF NOT EXISTS contacts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   owner_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -139,7 +160,7 @@ CREATE TABLE contacts (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE contact_notes (
+CREATE TABLE IF NOT EXISTS contact_notes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -148,7 +169,7 @@ CREATE TABLE contact_notes (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE relationship_events (
+CREATE TABLE IF NOT EXISTS relationship_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   type relationship_event_type NOT NULL,
@@ -164,7 +185,7 @@ CREATE TABLE relationship_events (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE introductions (
+CREATE TABLE IF NOT EXISTS introductions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   requester_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -179,7 +200,7 @@ CREATE TABLE introductions (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE search_history (
+CREATE TABLE IF NOT EXISTS search_history (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -189,7 +210,7 @@ CREATE TABLE search_history (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE saved_searches (
+CREATE TABLE IF NOT EXISTS saved_searches (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -199,7 +220,7 @@ CREATE TABLE saved_searches (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE activities (
+CREATE TABLE IF NOT EXISTS activities (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -210,7 +231,7 @@ CREATE TABLE activities (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -222,7 +243,7 @@ CREATE TABLE notifications (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE sync_jobs (
+CREATE TABLE IF NOT EXISTS sync_jobs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -237,7 +258,7 @@ CREATE TABLE sync_jobs (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE feature_flags (
+CREATE TABLE IF NOT EXISTS feature_flags (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   key TEXT NOT NULL UNIQUE,
   enabled BOOLEAN DEFAULT FALSE,
@@ -246,7 +267,7 @@ CREATE TABLE feature_flags (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE ai_usage (
+CREATE TABLE IF NOT EXISTS ai_usage (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -263,21 +284,21 @@ CREATE TABLE ai_usage (
 -- Migration 2/5: Indexes, triggers, and database functions
 -- Applied to remote: yes
 
-CREATE INDEX idx_workspace_members_user ON workspace_members(user_id);
-CREATE INDEX idx_workspace_members_workspace ON workspace_members(workspace_id);
-CREATE INDEX idx_contacts_workspace ON contacts(workspace_id);
-CREATE INDEX idx_contacts_email ON contacts(email);
-CREATE INDEX idx_contacts_company ON contacts(company_id);
-CREATE INDEX idx_contacts_name_trgm ON contacts USING gin (full_name gin_trgm_ops);
-CREATE INDEX idx_companies_workspace ON companies(workspace_id);
-CREATE INDEX idx_relationship_events_workspace ON relationship_events(workspace_id);
-CREATE INDEX idx_relationship_events_contacts ON relationship_events(contact_a, contact_b);
-CREATE INDEX idx_search_history_workspace ON search_history(workspace_id);
-CREATE INDEX idx_search_history_user ON search_history(user_id);
-CREATE INDEX idx_activities_workspace ON activities(workspace_id);
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_oauth_connections_user ON oauth_connections(user_id);
-CREATE INDEX idx_sync_jobs_workspace ON sync_jobs(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_user ON workspace_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace ON workspace_members(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_contacts_workspace ON contacts(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);
+CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company_id);
+CREATE INDEX IF NOT EXISTS idx_contacts_name_trgm ON contacts USING gin (full_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_companies_workspace ON companies(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_relationship_events_workspace ON relationship_events(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_relationship_events_contacts ON relationship_events(contact_a, contact_b);
+CREATE INDEX IF NOT EXISTS idx_search_history_workspace ON search_history(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_search_history_user ON search_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_activities_workspace ON activities(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_connections_user ON oauth_connections(user_id);
+CREATE INDEX IF NOT EXISTS idx_sync_jobs_workspace ON sync_jobs(workspace_id);
 
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
@@ -287,11 +308,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
 CREATE TRIGGER profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS workspaces_updated_at ON workspaces;
 CREATE TRIGGER workspaces_updated_at BEFORE UPDATE ON workspaces FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS contacts_updated_at ON contacts;
 CREATE TRIGGER contacts_updated_at BEFORE UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS companies_updated_at ON companies;
 CREATE TRIGGER companies_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS oauth_connections_updated_at ON oauth_connections;
 CREATE TRIGGER oauth_connections_updated_at BEFORE UPDATE ON oauth_connections FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS introductions_updated_at ON introductions;
 CREATE TRIGGER introductions_updated_at BEFORE UPDATE ON introductions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -308,6 +335,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
@@ -372,12 +400,15 @@ $$ LANGUAGE sql SECURITY DEFINER;
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Workspace members can view teammate profiles" ON profiles;
 CREATE POLICY "Workspace members can view teammate profiles" ON profiles
   FOR SELECT USING (
     EXISTS (
@@ -389,57 +420,71 @@ CREATE POLICY "Workspace members can view teammate profiles" ON profiles
 
 ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view workspace" ON workspaces;
 CREATE POLICY "Members can view workspace" ON workspaces
   FOR SELECT USING (is_workspace_member(id));
 
+DROP POLICY IF EXISTS "Owners and admins can update workspace" ON workspaces;
 CREATE POLICY "Owners and admins can update workspace" ON workspaces
   FOR UPDATE USING (get_workspace_role(id) IN ('owner', 'admin'));
 
+DROP POLICY IF EXISTS "Authenticated users can create workspace" ON workspaces;
 CREATE POLICY "Authenticated users can create workspace" ON workspaces
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view workspace members" ON workspace_members;
 CREATE POLICY "Members can view workspace members" ON workspace_members
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Owners and admins can manage members" ON workspace_members;
 CREATE POLICY "Owners and admins can manage members" ON workspace_members
   FOR ALL USING (get_workspace_role(workspace_id) IN ('owner', 'admin'));
 
+DROP POLICY IF EXISTS "Users can join via invite" ON workspace_members;
 CREATE POLICY "Users can join via invite" ON workspace_members
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 ALTER TABLE workspace_invites ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view invites" ON workspace_invites;
 CREATE POLICY "Members can view invites" ON workspace_invites
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Owners and admins can create invites" ON workspace_invites;
 CREATE POLICY "Owners and admins can create invites" ON workspace_invites
   FOR INSERT WITH CHECK (get_workspace_role(workspace_id) IN ('owner', 'admin'));
 
 ALTER TABLE oauth_connections ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own connections" ON oauth_connections;
 CREATE POLICY "Users can manage own connections" ON oauth_connections
   FOR ALL USING (auth.uid() = user_id AND is_workspace_member(workspace_id));
 
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view companies" ON companies;
 CREATE POLICY "Members can view companies" ON companies
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members can manage companies" ON companies;
 CREATE POLICY "Members can manage companies" ON companies
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view contacts" ON contacts;
 CREATE POLICY "Members can view contacts" ON contacts
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members can manage contacts" ON contacts;
 CREATE POLICY "Members can manage contacts" ON contacts
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
 ALTER TABLE contact_notes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view notes" ON contact_notes;
 CREATE POLICY "Members can view notes" ON contact_notes
   FOR SELECT USING (
     EXISTS (
@@ -448,85 +493,105 @@ CREATE POLICY "Members can view notes" ON contact_notes
     )
   );
 
+DROP POLICY IF EXISTS "Members can manage own notes" ON contact_notes;
 CREATE POLICY "Members can manage own notes" ON contact_notes
   FOR ALL USING (auth.uid() = author_id);
 
 ALTER TABLE relationship_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view events" ON relationship_events;
 CREATE POLICY "Members can view events" ON relationship_events
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members can create events" ON relationship_events;
 CREATE POLICY "Members can create events" ON relationship_events
   FOR INSERT WITH CHECK (is_workspace_member(workspace_id));
 
 ALTER TABLE introductions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view introductions" ON introductions;
 CREATE POLICY "Members can view introductions" ON introductions
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members can manage introductions" ON introductions;
 CREATE POLICY "Members can manage introductions" ON introductions
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
 ALTER TABLE search_history ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own search history" ON search_history;
 CREATE POLICY "Users can view own search history" ON search_history
   FOR SELECT USING (auth.uid() = user_id AND is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Users can create search history" ON search_history;
 CREATE POLICY "Users can create search history" ON search_history
   FOR INSERT WITH CHECK (auth.uid() = user_id AND is_workspace_member(workspace_id));
 
 ALTER TABLE saved_searches ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own saved searches" ON saved_searches;
 CREATE POLICY "Users can manage own saved searches" ON saved_searches
   FOR ALL USING (auth.uid() = user_id AND is_workspace_member(workspace_id));
 
 ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view activities" ON activities;
 CREATE POLICY "Members can view activities" ON activities
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "System can insert activities" ON activities;
 CREATE POLICY "System can insert activities" ON activities
   FOR INSERT WITH CHECK (is_workspace_member(workspace_id));
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
 CREATE POLICY "Users can view own notifications" ON notifications
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 CREATE POLICY "Users can update own notifications" ON notifications
   FOR UPDATE USING (auth.uid() = user_id);
 
 ALTER TABLE sync_jobs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own sync jobs" ON sync_jobs;
 CREATE POLICY "Users can view own sync jobs" ON sync_jobs
   FOR SELECT USING (auth.uid() = user_id AND is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Users can create sync jobs" ON sync_jobs;
 CREATE POLICY "Users can create sync jobs" ON sync_jobs
   FOR INSERT WITH CHECK (auth.uid() = user_id AND is_workspace_member(workspace_id));
 
 ALTER TABLE feature_flags ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can read feature flags" ON feature_flags;
 CREATE POLICY "Anyone can read feature flags" ON feature_flags
   FOR SELECT USING (true);
 
 ALTER TABLE ai_usage ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view workspace AI usage" ON ai_usage;
 CREATE POLICY "Members can view workspace AI usage" ON ai_usage
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Users can log AI usage" ON ai_usage;
 CREATE POLICY "Users can log AI usage" ON ai_usage
   FOR INSERT WITH CHECK (auth.uid() = user_id AND is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
 CREATE POLICY "Admins can view all profiles" ON profiles
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
   );
 
+DROP POLICY IF EXISTS "Admins can view all workspaces" ON workspaces;
 CREATE POLICY "Admins can view all workspaces" ON workspaces
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
   );
 
+DROP POLICY IF EXISTS "Admins can manage feature flags" ON feature_flags;
 CREATE POLICY "Admins can manage feature flags" ON feature_flags
   FOR ALL USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
@@ -772,6 +837,7 @@ CREATE POLICY "Users manage own connectors" ON data_connectors
   WITH CHECK (auth.uid() = user_id);
 
 DROP TRIGGER IF EXISTS data_connectors_updated_at ON data_connectors;
+DROP TRIGGER IF EXISTS data_connectors_updated_at ON data_connectors;
 CREATE TRIGGER data_connectors_updated_at
   BEFORE UPDATE ON data_connectors
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -786,17 +852,12 @@ ALTER TABLE data_connectors
   ADD COLUMN IF NOT EXISTS account_email TEXT,
   ADD COLUMN IF NOT EXISTS account_label TEXT;
 
-ALTER TABLE data_connectors
-  DROP CONSTRAINT IF EXISTS data_connectors_user_id_workspace_id_connector_key_key;
-
 CREATE UNIQUE INDEX IF NOT EXISTS data_connectors_oauth_account_unique
   ON data_connectors (user_id, workspace_id, connector_key, provider_account_id)
   WHERE provider_account_id IS NOT NULL;
 
 -- Supabase upsert support
-ALTER TABLE data_connectors
-  DROP CONSTRAINT IF EXISTS data_connectors_account_unique;
-
+ALTER TABLE data_connectors DROP CONSTRAINT IF EXISTS data_connectors_account_unique;
 ALTER TABLE data_connectors
   ADD CONSTRAINT data_connectors_account_unique
   UNIQUE (user_id, workspace_id, connector_key, provider_account_id);
@@ -1017,19 +1078,36 @@ GRANT EXECUTE ON FUNCTION public.ensure_user_onboarded() TO authenticated;
 
 -- Playbooks (Agent Mode), Segments, outreach pipeline
 
-CREATE TYPE playbook_status AS ENUM ('draft', 'active', 'paused', 'archived');
-CREATE TYPE automation_level AS ENUM ('assist', 'supervised', 'autonomous');
-CREATE TYPE outreach_mode AS ENUM ('warm_preferred', 'warm_required', 'cold_allowed');
-CREATE TYPE playbook_run_status AS ENUM (
-  'pending', 'matching', 'review', 'finalized', 'executing', 'completed', 'failed', 'cancelled'
-);
-CREATE TYPE playbook_prospect_status AS ENUM (
-  'matched', 'selected', 'queued', 'pending_approval', 'sent', 'replied', 'booked', 'opted_out', 'failed', 'skipped'
-);
-CREATE TYPE outbound_channel AS ENUM ('email', 'in_app', 'linkedin');
-CREATE TYPE outbound_message_status AS ENUM ('draft', 'pending_approval', 'queued', 'sent', 'failed', 'cancelled');
+DO $$ BEGIN
+    CREATE TYPE playbook_status AS ENUM ('draft', 'active', 'paused', 'archived');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE automation_level AS ENUM ('assist', 'supervised', 'autonomous');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE outreach_mode AS ENUM ('warm_preferred', 'warm_required', 'cold_allowed');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE playbook_run_status AS ENUM ('pending', 'matching', 'review', 'finalized', 'executing', 'completed', 'failed', 'cancelled');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE playbook_prospect_status AS ENUM ('matched', 'selected', 'queued', 'pending_approval', 'sent', 'replied', 'booked', 'opted_out', 'failed', 'skipped');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE outbound_channel AS ENUM ('email', 'in_app', 'linkedin');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE outbound_message_status AS ENUM ('draft', 'pending_approval', 'queued', 'sent', 'failed', 'cancelled');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE segments (
+CREATE TABLE IF NOT EXISTS segments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -1041,14 +1119,14 @@ CREATE TABLE segments (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE segment_contacts (
+CREATE TABLE IF NOT EXISTS segment_contacts (
   segment_id UUID NOT NULL REFERENCES segments(id) ON DELETE CASCADE,
   contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
   added_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   PRIMARY KEY (segment_id, contact_id)
 );
 
-CREATE TABLE email_templates (
+CREATE TABLE IF NOT EXISTS email_templates (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -1061,7 +1139,7 @@ CREATE TABLE email_templates (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE playbooks (
+CREATE TABLE IF NOT EXISTS playbooks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -1081,7 +1159,7 @@ CREATE TABLE playbooks (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE playbook_runs (
+CREATE TABLE IF NOT EXISTS playbook_runs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   playbook_id UUID NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -1096,7 +1174,7 @@ CREATE TABLE playbook_runs (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE playbook_run_contacts (
+CREATE TABLE IF NOT EXISTS playbook_run_contacts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   run_id UUID NOT NULL REFERENCES playbook_runs(id) ON DELETE CASCADE,
   contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
@@ -1113,7 +1191,7 @@ CREATE TABLE playbook_run_contacts (
   UNIQUE (run_id, contact_id)
 );
 
-CREATE TABLE contact_preferences (
+CREATE TABLE IF NOT EXISTS contact_preferences (
   contact_id UUID PRIMARY KEY REFERENCES contacts(id) ON DELETE CASCADE,
   unsubscribed_at TIMESTAMPTZ,
   do_not_contact BOOLEAN DEFAULT FALSE NOT NULL,
@@ -1122,7 +1200,7 @@ CREATE TABLE contact_preferences (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE outbound_messages (
+CREATE TABLE IF NOT EXISTS outbound_messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   run_id UUID REFERENCES playbook_runs(id) ON DELETE SET NULL,
   run_contact_id UUID REFERENCES playbook_run_contacts(id) ON DELETE SET NULL,
@@ -1139,7 +1217,7 @@ CREATE TABLE outbound_messages (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -1150,7 +1228,7 @@ CREATE TABLE audit_logs (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE conversation_threads (
+CREATE TABLE IF NOT EXISTS conversation_threads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   run_contact_id UUID REFERENCES playbook_run_contacts(id) ON DELETE SET NULL,
@@ -1160,7 +1238,7 @@ CREATE TABLE conversation_threads (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE TABLE thread_messages (
+CREATE TABLE IF NOT EXISTS thread_messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   thread_id UUID NOT NULL REFERENCES conversation_threads(id) ON DELETE CASCADE,
   sender_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -1170,12 +1248,12 @@ CREATE TABLE thread_messages (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE INDEX idx_segments_workspace ON segments(workspace_id);
-CREATE INDEX idx_playbooks_workspace ON playbooks(workspace_id);
-CREATE INDEX idx_playbook_runs_playbook ON playbook_runs(playbook_id);
-CREATE INDEX idx_playbook_run_contacts_run ON playbook_run_contacts(run_id);
-CREATE INDEX idx_outbound_messages_contact ON outbound_messages(contact_id);
-CREATE INDEX idx_audit_logs_workspace ON audit_logs(workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_segments_workspace ON segments(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_playbooks_workspace ON playbooks(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_playbook_runs_playbook ON playbook_runs(playbook_id);
+CREATE INDEX IF NOT EXISTS idx_playbook_run_contacts_run ON playbook_run_contacts(run_id);
+CREATE INDEX IF NOT EXISTS idx_outbound_messages_contact ON outbound_messages(contact_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_workspace ON audit_logs(workspace_id, created_at DESC);
 
 -- RLS
 ALTER TABLE segments ENABLE ROW LEVEL SECURITY;
@@ -1190,9 +1268,11 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversation_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE thread_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members manage segments" ON segments;
 CREATE POLICY "Members manage segments" ON segments
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
+DROP POLICY IF EXISTS "Members manage segment contacts" ON segment_contacts;
 CREATE POLICY "Members manage segment contacts" ON segment_contacts
   FOR ALL USING (
     EXISTS (
@@ -1201,15 +1281,19 @@ CREATE POLICY "Members manage segment contacts" ON segment_contacts
     )
   );
 
+DROP POLICY IF EXISTS "Members manage templates" ON email_templates;
 CREATE POLICY "Members manage templates" ON email_templates
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
+DROP POLICY IF EXISTS "Members manage playbooks" ON playbooks;
 CREATE POLICY "Members manage playbooks" ON playbooks
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
+DROP POLICY IF EXISTS "Members manage playbook runs" ON playbook_runs;
 CREATE POLICY "Members manage playbook runs" ON playbook_runs
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
+DROP POLICY IF EXISTS "Members manage run contacts" ON playbook_run_contacts;
 CREATE POLICY "Members manage run contacts" ON playbook_run_contacts
   FOR ALL USING (
     EXISTS (
@@ -1218,6 +1302,7 @@ CREATE POLICY "Members manage run contacts" ON playbook_run_contacts
     )
   );
 
+DROP POLICY IF EXISTS "Members view contact preferences" ON contact_preferences;
 CREATE POLICY "Members view contact preferences" ON contact_preferences
   FOR SELECT USING (
     EXISTS (
@@ -1226,18 +1311,23 @@ CREATE POLICY "Members view contact preferences" ON contact_preferences
     )
   );
 
+DROP POLICY IF EXISTS "Members manage outbound messages" ON outbound_messages;
 CREATE POLICY "Members manage outbound messages" ON outbound_messages
   FOR ALL USING (is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer');
 
+DROP POLICY IF EXISTS "Members view audit logs" ON audit_logs;
 CREATE POLICY "Members view audit logs" ON audit_logs
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members insert audit logs" ON audit_logs;
 CREATE POLICY "Members insert audit logs" ON audit_logs
   FOR INSERT WITH CHECK (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members manage threads" ON conversation_threads;
 CREATE POLICY "Members manage threads" ON conversation_threads
   FOR ALL USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members manage thread messages" ON thread_messages;
 CREATE POLICY "Members manage thread messages" ON thread_messages
   FOR ALL USING (
     EXISTS (
@@ -1282,6 +1372,7 @@ CREATE INDEX IF NOT EXISTS idx_run_contacts_next_action ON playbook_run_contacts
 
 ALTER TABLE playbook_sequence_steps ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members manage sequence steps" ON playbook_sequence_steps;
 CREATE POLICY "Members manage sequence steps" ON playbook_sequence_steps
   FOR ALL USING (
     EXISTS (
@@ -1292,6 +1383,7 @@ CREATE POLICY "Members manage sequence steps" ON playbook_sequence_steps
     )
   );
 
+DROP POLICY IF EXISTS "Members update contact preferences" ON contact_preferences;
 CREATE POLICY "Members update contact preferences" ON contact_preferences
   FOR ALL USING (
     EXISTS (
@@ -1318,17 +1410,17 @@ ALTER TABLE workspaces
 
 -- Add personal sender mode + domain verification fields for custom From addresses
 
-ALTER TABLE workspaces DROP CONSTRAINT IF EXISTS workspaces_email_sender_mode_check;
-
 ALTER TABLE workspaces
   ADD COLUMN IF NOT EXISTS sender_domain TEXT,
   ADD COLUMN IF NOT EXISTS sender_domain_status TEXT NOT NULL DEFAULT 'not_started',
   ADD COLUMN IF NOT EXISTS resend_domain_id TEXT;
 
+ALTER TABLE workspaces DROP CONSTRAINT IF EXISTS workspaces_email_sender_mode_check;
 ALTER TABLE workspaces
   ADD CONSTRAINT workspaces_email_sender_mode_check
     CHECK (email_sender_mode IN ('platform', 'personal', 'custom'));
 
+ALTER TABLE workspaces DROP CONSTRAINT IF EXISTS workspaces_sender_domain_status_check;
 ALTER TABLE workspaces
   ADD CONSTRAINT workspaces_sender_domain_status_check
     CHECK (sender_domain_status IN ('not_started', 'pending', 'verified', 'failed'));
@@ -1346,9 +1438,11 @@ WHERE email_sender_mode = 'custom'
 
 -- Allow members to leave a group and owners to delete a group
 
+DROP POLICY IF EXISTS "Members can leave workspace" ON workspace_members;
 CREATE POLICY "Members can leave workspace" ON workspace_members
   FOR DELETE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Owners can delete workspace" ON workspaces;
 CREATE POLICY "Owners can delete workspace" ON workspaces
   FOR DELETE USING (get_workspace_role(id) = 'owner');
 
@@ -1369,14 +1463,17 @@ CREATE INDEX IF NOT EXISTS idx_conversation_threads_recipient
   WHERE recipient_user_id IS NOT NULL;
 
 -- Recipients can read threads addressed to them
+DROP POLICY IF EXISTS "Recipients can view their threads" ON conversation_threads;
 CREATE POLICY "Recipients can view their threads" ON conversation_threads
   FOR SELECT USING (recipient_user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Recipients can update their thread activity" ON conversation_threads;
 CREATE POLICY "Recipients can update their thread activity" ON conversation_threads
   FOR UPDATE
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Recipients can view their thread messages" ON thread_messages;
 CREATE POLICY "Recipients can view their thread messages" ON thread_messages
   FOR SELECT USING (
     EXISTS (
@@ -1385,6 +1482,7 @@ CREATE POLICY "Recipients can view their thread messages" ON thread_messages
     )
   );
 
+DROP POLICY IF EXISTS "Recipients can reply in their threads" ON thread_messages;
 CREATE POLICY "Recipients can reply in their threads" ON thread_messages
   FOR INSERT WITH CHECK (
     sender_user_id = auth.uid()
@@ -1415,6 +1513,7 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS link_threads_on_profile_insert ON profiles;
+DROP TRIGGER IF EXISTS link_threads_on_profile_insert ON profiles;
 CREATE TRIGGER link_threads_on_profile_insert
   AFTER INSERT ON profiles
   FOR EACH ROW
@@ -1441,6 +1540,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS link_threads_on_profile_email_update ON profiles;
 DROP TRIGGER IF EXISTS link_threads_on_profile_email_update ON profiles;
 CREATE TRIGGER link_threads_on_profile_email_update
   AFTER INSERT OR UPDATE OF email ON profiles
@@ -1533,7 +1633,10 @@ SELECT cron.schedule(
 
 ALTER TABLE thread_messages REPLICA IDENTITY FULL;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE thread_messages;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE thread_messages;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ----------------------------------------------------------------------------
 -- MIGRATION: 20260708120000_sequence_allowed_weekdays.sql
@@ -1636,7 +1739,10 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_dashboard_stats(uuid, uuid[]) TO authenticated;
 
 ALTER TABLE notifications REPLICA IDENTITY FULL;
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_workspace_members_invited_by ON workspace_members(invited_by);
 CREATE INDEX IF NOT EXISTS idx_workspace_invites_invited_by ON workspace_invites(invited_by);
@@ -1842,12 +1948,14 @@ CREATE INDEX IF NOT EXISTS idx_chat_hides_user ON chat_hides (user_id);
 
 ALTER TABLE chat_hides ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own chat hides" ON chat_hides;
 CREATE POLICY "Users manage own chat hides" ON chat_hides
   FOR ALL
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
 -- Recipients may delete their own messages (workspace members already have FOR ALL)
+DROP POLICY IF EXISTS "Recipients can delete own thread messages" ON thread_messages;
 CREATE POLICY "Recipients can delete own thread messages" ON thread_messages
   FOR DELETE
   USING (
@@ -2051,9 +2159,12 @@ USING (
 
 -- Agent Mode visual workflows (React Flow graphs)
 
-CREATE TYPE workflow_status AS ENUM ('draft', 'active', 'paused', 'archived');
+DO $$ BEGIN
+    CREATE TYPE workflow_status AS ENUM ('draft', 'active', 'paused', 'archived');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE workflows (
+CREATE TABLE IF NOT EXISTS workflows (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -2070,15 +2181,17 @@ CREATE TABLE workflows (
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE INDEX idx_workflows_workspace ON workflows(workspace_id);
-CREATE INDEX idx_workflows_updated ON workflows(workspace_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workflows_updated ON workflows(workspace_id, updated_at DESC);
 
+DROP TRIGGER IF EXISTS workflows_updated_at ON workflows;
 CREATE TRIGGER workflows_updated_at
   BEFORE UPDATE ON workflows
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE workflows ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members manage workflows" ON workflows;
 CREATE POLICY "Members manage workflows" ON workflows
   FOR ALL USING (
     workspace_id IN (
@@ -2169,28 +2282,28 @@ ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_ticket_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_feature_flags ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS support_tickets_select ON public.support_tickets;
+DROP POLICY IF EXISTS "support_tickets_select" ON public.support_tickets;
 CREATE POLICY support_tickets_select ON public.support_tickets
   FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR public.is_admin());
 
-DROP POLICY IF EXISTS support_tickets_insert ON public.support_tickets;
+DROP POLICY IF EXISTS "support_tickets_insert" ON public.support_tickets;
 CREATE POLICY support_tickets_insert ON public.support_tickets
   FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
 
-DROP POLICY IF EXISTS support_tickets_update ON public.support_tickets;
+DROP POLICY IF EXISTS "support_tickets_update" ON public.support_tickets;
 CREATE POLICY support_tickets_update ON public.support_tickets
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid() OR public.is_admin())
   WITH CHECK (user_id = auth.uid() OR public.is_admin());
 
-DROP POLICY IF EXISTS support_tickets_delete ON public.support_tickets;
+DROP POLICY IF EXISTS "support_tickets_delete" ON public.support_tickets;
 CREATE POLICY support_tickets_delete ON public.support_tickets
   FOR DELETE TO authenticated
   USING (public.is_admin());
 
-DROP POLICY IF EXISTS support_ticket_messages_select ON public.support_ticket_messages;
+DROP POLICY IF EXISTS "support_ticket_messages_select" ON public.support_ticket_messages;
 CREATE POLICY support_ticket_messages_select ON public.support_ticket_messages
   FOR SELECT TO authenticated
   USING (
@@ -2200,7 +2313,7 @@ CREATE POLICY support_ticket_messages_select ON public.support_ticket_messages
     )
   );
 
-DROP POLICY IF EXISTS support_ticket_messages_insert ON public.support_ticket_messages;
+DROP POLICY IF EXISTS "support_ticket_messages_insert" ON public.support_ticket_messages;
 CREATE POLICY support_ticket_messages_insert ON public.support_ticket_messages
   FOR INSERT TO authenticated
   WITH CHECK (
@@ -2215,12 +2328,12 @@ CREATE POLICY support_ticket_messages_insert ON public.support_ticket_messages
     )
   );
 
-DROP POLICY IF EXISTS user_feature_flags_select ON public.user_feature_flags;
+DROP POLICY IF EXISTS "user_feature_flags_select" ON public.user_feature_flags;
 CREATE POLICY user_feature_flags_select ON public.user_feature_flags
   FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR public.is_admin());
 
-DROP POLICY IF EXISTS user_feature_flags_admin_all ON public.user_feature_flags;
+DROP POLICY IF EXISTS "user_feature_flags_admin_all" ON public.user_feature_flags;
 CREATE POLICY user_feature_flags_admin_all ON public.user_feature_flags
   FOR ALL TO authenticated
   USING (public.is_admin())
@@ -2254,6 +2367,7 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS support_tickets_touch_updated_at ON public.support_tickets;
+DROP TRIGGER IF EXISTS support_tickets_touch_updated_at ON public.support_tickets;
 CREATE TRIGGER support_tickets_touch_updated_at
   BEFORE UPDATE ON public.support_tickets
   FOR EACH ROW EXECUTE FUNCTION public.touch_support_ticket_updated_at();
@@ -2284,7 +2398,7 @@ CREATE INDEX IF NOT EXISTS support_ticket_attachments_message_id_idx
 
 ALTER TABLE public.support_ticket_attachments ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS support_ticket_attachments_select ON public.support_ticket_attachments;
+DROP POLICY IF EXISTS "support_ticket_attachments_select" ON public.support_ticket_attachments;
 CREATE POLICY support_ticket_attachments_select ON public.support_ticket_attachments
   FOR SELECT TO authenticated
   USING (
@@ -2294,7 +2408,7 @@ CREATE POLICY support_ticket_attachments_select ON public.support_ticket_attachm
     )
   );
 
-DROP POLICY IF EXISTS support_ticket_attachments_insert ON public.support_ticket_attachments;
+DROP POLICY IF EXISTS "support_ticket_attachments_insert" ON public.support_ticket_attachments;
 CREATE POLICY support_ticket_attachments_insert ON public.support_ticket_attachments
   FOR INSERT TO authenticated
   WITH CHECK (
@@ -2313,7 +2427,7 @@ CREATE POLICY support_ticket_attachments_insert ON public.support_ticket_attachm
     )
   );
 
-DROP POLICY IF EXISTS support_ticket_attachments_delete ON public.support_ticket_attachments;
+DROP POLICY IF EXISTS "support_ticket_attachments_delete" ON public.support_ticket_attachments;
 CREATE POLICY support_ticket_attachments_delete ON public.support_ticket_attachments
   FOR DELETE TO authenticated
   USING (public.is_admin() OR uploaded_by = auth.uid());
@@ -2406,12 +2520,12 @@ CREATE INDEX IF NOT EXISTS support_ticket_reads_user_id_idx
 
 ALTER TABLE public.support_ticket_reads ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS support_ticket_reads_select ON public.support_ticket_reads;
+DROP POLICY IF EXISTS "support_ticket_reads_select" ON public.support_ticket_reads;
 CREATE POLICY support_ticket_reads_select ON public.support_ticket_reads
   FOR SELECT TO authenticated
   USING (user_id = auth.uid() OR public.is_admin());
 
-DROP POLICY IF EXISTS support_ticket_reads_insert ON public.support_ticket_reads;
+DROP POLICY IF EXISTS "support_ticket_reads_insert" ON public.support_ticket_reads;
 CREATE POLICY support_ticket_reads_insert ON public.support_ticket_reads
   FOR INSERT TO authenticated
   WITH CHECK (
@@ -2422,7 +2536,7 @@ CREATE POLICY support_ticket_reads_insert ON public.support_ticket_reads
     )
   );
 
-DROP POLICY IF EXISTS support_ticket_reads_update ON public.support_ticket_reads;
+DROP POLICY IF EXISTS "support_ticket_reads_update" ON public.support_ticket_reads;
 CREATE POLICY support_ticket_reads_update ON public.support_ticket_reads
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid())
@@ -2523,6 +2637,7 @@ ALTER TABLE public.platform_email_templates ENABLE ROW LEVEL SECURITY;
 
 -- No policies for authenticated/anon: service role only (admin + send paths).
 
+DROP TRIGGER IF EXISTS platform_email_templates_updated_at ON public.platform_email_templates;
 DROP TRIGGER IF EXISTS platform_email_templates_updated_at ON public.platform_email_templates;
 CREATE TRIGGER platform_email_templates_updated_at
   BEFORE UPDATE ON public.platform_email_templates
@@ -2793,8 +2908,6 @@ CREATE POLICY "Users can view contacts matching their email"
 
 -- Do not add a profiles SELECT policy that joins contacts/introductions:
 -- that re-enters RLS and causes infinite recursion (42P17).
-DROP POLICY IF EXISTS "Users can view requester profiles for intros to them" ON public.profiles;
-
 -- ----------------------------------------------------------------------------
 -- MIGRATION: 20260727200000_thread_message_attachments.sql
 -- ----------------------------------------------------------------------------
@@ -2820,7 +2933,7 @@ CREATE INDEX IF NOT EXISTS thread_message_attachments_message_id_idx
 
 ALTER TABLE public.thread_message_attachments ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS thread_message_attachments_select ON public.thread_message_attachments;
+DROP POLICY IF EXISTS "thread_message_attachments_select" ON public.thread_message_attachments;
 CREATE POLICY thread_message_attachments_select ON public.thread_message_attachments
   FOR SELECT TO authenticated
   USING (
@@ -2834,7 +2947,7 @@ CREATE POLICY thread_message_attachments_select ON public.thread_message_attachm
     )
   );
 
-DROP POLICY IF EXISTS thread_message_attachments_insert ON public.thread_message_attachments;
+DROP POLICY IF EXISTS "thread_message_attachments_insert" ON public.thread_message_attachments;
 CREATE POLICY thread_message_attachments_insert ON public.thread_message_attachments
   FOR INSERT TO authenticated
   WITH CHECK (
@@ -2852,7 +2965,7 @@ CREATE POLICY thread_message_attachments_insert ON public.thread_message_attachm
     )
   );
 
-DROP POLICY IF EXISTS thread_message_attachments_delete ON public.thread_message_attachments;
+DROP POLICY IF EXISTS "thread_message_attachments_delete" ON public.thread_message_attachments;
 CREATE POLICY thread_message_attachments_delete ON public.thread_message_attachments
   FOR DELETE TO authenticated
   USING (uploaded_by = auth.uid());
@@ -2952,9 +3065,12 @@ ALTER TYPE sync_source ADD VALUE IF NOT EXISTS 'apollo';
 
 -- Apollo tab: workspace-scoped saved search/enrichment records (separate from contacts)
 
-CREATE TYPE apollo_record_type AS ENUM ('person', 'organization');
+DO $$ BEGIN
+    CREATE TYPE apollo_record_type AS ENUM ('person', 'organization');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE apollo_records (
+CREATE TABLE IF NOT EXISTS apollo_records (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   saved_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -2980,15 +3096,17 @@ CREATE TABLE apollo_records (
   UNIQUE (workspace_id, record_type, apollo_id)
 );
 
-CREATE INDEX apollo_records_workspace_type_idx ON apollo_records (workspace_id, record_type);
-CREATE INDEX apollo_records_workspace_created_idx ON apollo_records (workspace_id, created_at DESC);
-CREATE INDEX apollo_records_contact_id_idx ON apollo_records (contact_id) WHERE contact_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS apollo_records_workspace_type_idx ON apollo_records (workspace_id, record_type);
+CREATE INDEX IF NOT EXISTS apollo_records_workspace_created_idx ON apollo_records (workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS apollo_records_contact_id_idx ON apollo_records (contact_id) WHERE contact_id IS NOT NULL;
 
 ALTER TABLE apollo_records ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view apollo records" ON apollo_records;
 CREATE POLICY "Members can view apollo records" ON apollo_records
   FOR SELECT USING (is_workspace_member(workspace_id));
 
+DROP POLICY IF EXISTS "Members can manage apollo records" ON apollo_records;
 CREATE POLICY "Members can manage apollo records" ON apollo_records
   FOR ALL USING (
     is_workspace_member(workspace_id) AND get_workspace_role(workspace_id) != 'viewer'
@@ -3043,7 +3161,7 @@ ON CONFLICT (workspace_id, record_type, apollo_id) DO NOTHING;
 
 -- Global Potentially prospect database (deduped by Apollo ID)
 
-CREATE TABLE platform_prospects (
+CREATE TABLE IF NOT EXISTS platform_prospects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   apollo_id TEXT NOT NULL UNIQUE,
   record_type apollo_record_type NOT NULL DEFAULT 'person',
@@ -3066,21 +3184,24 @@ CREATE TABLE platform_prospects (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX platform_prospects_apollo_id_idx ON platform_prospects (apollo_id);
-CREATE INDEX platform_prospects_enrichment_status_idx ON platform_prospects (enrichment_status);
-CREATE INDEX platform_prospects_last_seen_idx ON platform_prospects (last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS platform_prospects_apollo_id_idx ON platform_prospects (apollo_id);
+CREATE INDEX IF NOT EXISTS platform_prospects_enrichment_status_idx ON platform_prospects (enrichment_status);
+CREATE INDEX IF NOT EXISTS platform_prospects_last_seen_idx ON platform_prospects (last_seen_at DESC);
 
 ALTER TABLE contacts ADD COLUMN IF NOT EXISTS platform_prospect_id UUID REFERENCES platform_prospects(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS contacts_platform_prospect_id_idx ON contacts (platform_prospect_id) WHERE platform_prospect_id IS NOT NULL;
 
 ALTER TABLE platform_prospects ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view platform prospects" ON platform_prospects;
 CREATE POLICY "Authenticated users can view platform prospects" ON platform_prospects
   FOR SELECT USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Authenticated users can insert platform prospects" ON platform_prospects;
 CREATE POLICY "Authenticated users can insert platform prospects" ON platform_prospects
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Authenticated users can update platform prospects" ON platform_prospects;
 CREATE POLICY "Authenticated users can update platform prospects" ON platform_prospects
   FOR UPDATE USING (auth.uid() IS NOT NULL);
 
@@ -3157,3 +3278,16 @@ WHERE ar.contact_id = c.id
   AND c.platform_prospect_id IS NULL;
 
 DROP TABLE IF EXISTS apollo_records;
+
+-- ============================================================================
+-- Ensure all Supabase roles have table and routine access (RLS enforces policy rules)
+-- ============================================================================
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;
+

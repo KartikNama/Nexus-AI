@@ -37,27 +37,37 @@ async function fetchWorkspaceId(supabase: WorkspaceSupabase, userId: string) {
   return membership?.workspace_id ?? null;
 }
 
+import { createAdminClient } from "@/lib/supabase/admin";
+
 async function ensureUserProfile(supabase: WorkspaceSupabase, user: SessionUser) {
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
+  try {
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (existing) return;
+    if (existing) return;
+  } catch {
+    // continue to create
+  }
 
-  const { error } = await supabase.from("profiles").upsert(
-    {
-      id: user.id,
-      email: user.email ?? "",
-      name: displayNameFromSessionUser(user),
-      avatar_url: null,
-    },
-    { onConflict: "id" },
-  );
+  const profileData = {
+    id: user.id,
+    email: user.email ?? "",
+    name: displayNameFromSessionUser(user),
+    avatar_url: null,
+  };
 
-  if (error) {
-    throw new Error(`Failed to create profile: ${error.message}`);
+  try {
+    const admin = createAdminClient();
+    await admin.from("profiles").upsert(profileData, { onConflict: "id" });
+  } catch {
+    try {
+      await supabase.from("profiles").upsert(profileData, { onConflict: "id" });
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -70,31 +80,58 @@ async function ensureDefaultWorkspace(
 
   await ensureUserProfile(supabase, user);
 
-  const { data: onboardedId, error: onboardError } = await supabase.rpc("ensure_user_onboarded");
-
-  if (!onboardError && onboardedId) {
-    return onboardedId as string;
+  try {
+    const { data: onboardedId, error: onboardError } = await supabase.rpc("ensure_user_onboarded");
+    if (!onboardError && onboardedId) {
+      return onboardedId as string;
+    }
+  } catch {
+    // continue to next method
   }
 
-  if (onboardError && !onboardError.message.includes("Could not find the function")) {
-    console.error("ensure_user_onboarded failed:", onboardError.message);
+  const { data: userData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const workspaceName = userData?.user
+    ? `${displayNameFromUser(userData.user)}'s Workspace`
+    : `${displayNameFromSessionUser(user)}'s Workspace`;
+
+  try {
+    const { data, error } = await supabase.rpc("create_workspace_with_owner", {
+      workspace_name: workspaceName,
+    });
+    if (!error && (data as { id?: string })?.id) {
+      return (data as { id: string }).id;
+    }
+  } catch {
+    // fallback to direct admin creation
   }
 
-  const { data: userData } = await supabase.auth.getUser();
-  const workspaceName = userData.user
-    ? `${displayNameFromUser(userData.user)}'s Group`
-    : `${displayNameFromSessionUser(user)}'s Group`;
+  // Fallback: Direct creation using Admin client
+  try {
+    const admin = createAdminClient();
+    const slug = `${workspaceName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-")}-${user.id.slice(0, 6)}`;
+    const { data: newWs } = await admin
+      .from("workspaces")
+      .insert({
+        name: workspaceName,
+        slug,
+        plan: "free",
+      })
+      .select("id")
+      .single();
 
-  const { data, error } = await supabase.rpc("create_workspace_with_owner", {
-    workspace_name: workspaceName,
-  });
-
-  if (error) {
-    console.error("Failed to create default workspace:", error.message);
-    return fetchWorkspaceId(supabase, user.id);
+    if (newWs?.id) {
+      await admin.from("workspace_members").insert({
+        workspace_id: newWs.id,
+        user_id: user.id,
+        role: "owner",
+      });
+      return newWs.id;
+    }
+  } catch (err) {
+    console.error("Direct admin workspace creation failed:", err);
   }
 
-  return (data as { id: string } | null)?.id ?? null;
+  return fetchWorkspaceId(supabase, user.id);
 }
 
 async function resolveWorkspaceId(

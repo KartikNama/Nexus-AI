@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { signupVerificationEmail } from "@/lib/email/templates";
-import { deliverAuthEmail } from "@/lib/email/auth-delivery";
-import { createAdminClient, ensurePublicActionLink, getAppUrl } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isDemoMode } from "@/lib/app-config";
 
 const signupSchema = z.object({
@@ -19,34 +17,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, password, invite } = signupSchema.parse(body);
+    const { name, email, password } = signupSchema.parse(body);
     const supabase = createAdminClient();
-    const redirectTo = invite
-      ? `${getAppUrl(request)}/api/auth/callback?next=/groups&invite=${encodeURIComponent(invite)}`
-      : `${getAppUrl(request)}/api/auth/callback?next=/dashboard`;
 
-    if (redirectTo.includes("localhost") || redirectTo.includes("127.0.0.1")) {
-      console.error(
-        "[signup] Refusing localhost redirectTo in verification email:",
-        redirectTo,
-        "Set NEXT_PUBLIC_APP_URL=https://potentially.mechlintech.com and Supabase Site URL to the same domain.",
-      );
-      return NextResponse.json(
-        {
-          error:
-            "Server is misconfigured for email verification redirects. Set NEXT_PUBLIC_APP_URL to your production domain.",
-        },
-        { status: 500 },
-      );
-    }
-
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: "signup",
+    // 1. Create user in Supabase auth
+    const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: { full_name: name },
-        redirectTo,
+      email_confirm: true,
+      user_metadata: {
+        full_name: name,
       },
     });
 
@@ -61,40 +41,61 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    const actionLink = data.properties?.action_link;
-    if (!actionLink) {
-      return NextResponse.json({ error: "Failed to generate verification link" }, { status: 500 });
+    const userId = data.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
     }
 
-    const publicActionLink = ensurePublicActionLink(actionLink, request);
-    const template = await signupVerificationEmail(name, publicActionLink);
-    const delivery = await deliverAuthEmail({
-      to: email,
-      subject: template.subject,
-      html: template.html,
-    });
+    // 2. Create user profile
+    try {
+      await supabase.from("profiles").upsert(
+        {
+          id: userId,
+          email,
+          name,
+          avatar_url: null,
+        },
+        { onConflict: "id" },
+      );
+    } catch (e) {
+      console.error("Profile insert failed:", e);
+    }
 
-    if (!delivery.sent) {
-      const userId = data.user?.id;
-      if (userId) {
-        await supabase.auth.admin.deleteUser(userId).catch((deleteError) => {
-          console.error("Failed to roll back unverified signup user:", deleteError);
+    // 3. Create default workspace and assign user as owner
+    try {
+      const workspaceName = `${name}'s Workspace`;
+      const slug = `${name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-")}-${userId.slice(0, 6)}`;
+      
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .insert({
+          name: workspaceName,
+          slug,
+          plan: "free",
+        })
+        .select("id")
+        .single();
+
+      if (ws?.id) {
+        await supabase.from("workspace_members").insert({
+          workspace_id: ws.id,
+          user_id: userId,
+          role: "owner",
         });
       }
-
-      console.error("[signup] Verification email not sent:", delivery.reason);
-      return NextResponse.json({ error: delivery.reason }, { status: 503 });
+    } catch (e) {
+      console.error("Workspace initialization failed:", e);
     }
 
     return NextResponse.json({
       success: true,
-      message: "Check your email to verify your account",
+      message: "Account created successfully! You can now sign in.",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
-    console.error("Signup email failed:", error);
+    console.error("Signup failed:", error);
     const message = error instanceof Error ? error.message : "Signup failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
