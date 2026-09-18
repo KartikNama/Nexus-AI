@@ -1,7 +1,7 @@
 -- ============================================================================
 -- FULL CONSOLIDATED DATABASE SCHEMA FOR SUPABASE
 -- Project: Nexus AI (Relationship Intelligence Platform)
--- Generated: 2026-09-14T12:51:52.123Z
+-- Generated: 2026-09-18T06:50:35.303Z
 --
 -- HOW TO USE:
 -- 1. Create a new Supabase project at https://database.new

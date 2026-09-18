@@ -136,10 +136,22 @@ npm run lint          # ESLint
 
 CI runs lint, typecheck, unit tests, build, and E2E on push/PR to `main`.
 
-## Demo Mode
+## Database Schema
 
-Set `NEXT_PUBLIC_DEMO_MODE=true` (or omit Supabase credentials) to run with in-memory data.
+The database schema is consolidated in [`supabase/schema.sql`](supabase/schema.sql) and includes:
+- PostgreSQL extensions (`uuid-ossp`, `vector`, `pg_trgm`)
+- All tables, indexes, RLS policies, and triggers
+- Seed data available in [`supabase/seed.sql`](supabase/seed.sql)
+
+To initialize or reset your database, open your Supabase Dashboard SQL Editor and run `supabase/schema.sql`.
+
+## Next.js Conventions
+
+This project uses Next.js 16 App Router with React 19:
+- Server Components by default; use `'use client'` explicitly when client-side state/hooks are required.
+- Standalone output mode enabled in `next.config.ts` for efficient production hosting.
 
 ## License
 
 MIT
+

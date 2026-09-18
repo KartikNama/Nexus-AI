@@ -15,10 +15,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "docs:screenshots": "playwright test e2e/capture-docs-screenshots.spec.ts",
-    "prepare": "husky",
     "seed": "npx tsx scripts/seed.ts",
-    "db:validate": "npx tsx scripts/validate-migrations.ts",
-    "db:bundle": "npx tsx scripts/bundle-schema.ts",
     "calendly:webhook": "npx tsx scripts/setup-calendly-webhook.ts"
   },
   "dependencies": {
@@ -69,8 +66,6 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.1.0",
-    "@commitlint/config-conventional": "^21.1.0",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
@@ -85,7 +80,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "eslint-config-prettier": "^10.1.8",
-    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "prettier": "^3.8.5",
     "tailwindcss": "^4",
